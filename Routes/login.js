@@ -1,7 +1,10 @@
 // routes/user.js
 const express = require('express');
+const jwt = require('jsonwebtoken');
 const router = express.Router();
 const db = require('../db'); // Your database connection
+
+const secretKey = 'Prabhakar@123'; // Use a strong secret key in production
 
 router.post('/login', async (req, res) => {
     const { username, password } = req.body;
@@ -12,7 +15,8 @@ router.post('/login', async (req, res) => {
 
     try {
         // Check if the username exists
-        const usernameQuery = 'SELECT * FROM employee WHERE Username = ?';
+        // const usernameQuery = 'SELECT * FROM employee WHERE Username = ?'; -- northavenueautomotive
+        const usernameQuery = 'SELECT * FROM employees WHERE Username = ?';
         const [userRows] = await db.query(usernameQuery, [username]);
 
         if (userRows.length === 0) {
@@ -25,12 +29,20 @@ router.post('/login', async (req, res) => {
 
         // Validate password
         if (storedPassword === password) {
-            // Respond with user details, including job title
+            // Generate a JWT token
+            const token = jwt.sign(
+                { username: user.Username, role: jobTitle }, 
+                secretKey, 
+                { expiresIn: '1h' } // Token expires in 1 hour
+            );
+
+            // Respond with the token and user details
             return res.status(200).json({ 
                 message: 'Login successful', 
+                token,
                 user: { 
                     username: user.Username, // Include username or other needed fields
-                    role:jobTitle 
+                    role: jobTitle 
                 }
             });
         } else {

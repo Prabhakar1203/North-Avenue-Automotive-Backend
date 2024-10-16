@@ -25,7 +25,7 @@ const db = mysql.createPool({
     host: 'localhost',
     user: 'root',
     password: 'Prabhakar@123',
-    database: 'northavenueautomotive'
+    database: 'northavenue'
 });
 
 // Test the database connection and log a message

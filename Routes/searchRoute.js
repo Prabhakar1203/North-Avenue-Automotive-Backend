@@ -3,6 +3,7 @@ const router = express.Router();
 const db = require('../db'); // Adjust the path as necessary
 
 // Route to search for vehicles
+// Route to search for vehicles
 router.post('/search', async (req, res) => {
     const { searched_word } = req.body;
 
@@ -12,25 +13,28 @@ router.post('/search', async (req, res) => {
         return res.status(400).send('Search word is required');
     }
 
-    // SQL query with placeholders
+    // SQL query with LIKE operator for partial matches
     const query = `
         SELECT VIN, Vehicle_Type, Manufacturer_name, Model_year, Fuel_type, Color, Selling_Price 
-        FROM vehicle
-        WHERE Vehicle_Type = ? 
-        OR Manufacturer_name = ? 
-        OR Model_year = ? 
-        OR Fuel_type = ? 
-        OR Color = ? 
+        FROM vehicles
+        WHERE (Vehicle_Type LIKE ? 
+        OR Manufacturer_name LIKE ? 
+        OR Model_year LIKE ? 
+        OR Fuel_type LIKE ? 
+        OR Color LIKE ? 
+        OR VIN LIKE ?)
+        AND Sold_to_customer_id IS NULL
         ORDER BY VIN
     `;
 
-    // Parameters for the SQL query
+    // Parameters for the SQL query, with '%' for partial matches
     const queryParams = [
-        searched_word, // Vehicle type
-        searched_word, // Manufacturer name
-        searched_word, // Model year
-        searched_word, // Fuel type
-        searched_word, // Color
+        `%${searched_word}%`, // Vehicle type
+        `%${searched_word}%`, // Manufacturer name
+        `%${searched_word}%`, // Model year
+        `%${searched_word}%`, // Fuel type
+        `%${searched_word}%`, // Color
+        `%${searched_word}%`  // VIN
     ];
 
     try {
@@ -38,7 +42,6 @@ router.post('/search', async (req, res) => {
         const [results] = await db.query(query, queryParams); // Use destructuring to get the results array
 
         // Clean the results to remove any buffer data
-        
         const cleanedResults = results.map(row => {
             const cleanedRow = {};
             for (const key in row) {
@@ -62,5 +65,7 @@ router.post('/search', async (req, res) => {
         return res.status(500).send('Database error: ' + err.message);
     }
 });
+
+
 
 module.exports = router;
