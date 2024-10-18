@@ -151,9 +151,10 @@ router.get('/getMontlySales', async(req, res)=>{
 
 
 // Get Monthly Sales Drilldown with Employee Names
-router.get('/getMonthlySalesDrilldown/:year/:month', async (req, res) => {
-    const { year, month } = req.params;
-
+router.post('/getMonthlySalesDrilldown', async (req, res) => {
+    const { year, month } = req.body;
+    console.log(year);
+    console.log(month);
     try {
       
         const query = `

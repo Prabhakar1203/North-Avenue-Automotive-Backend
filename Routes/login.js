@@ -54,4 +54,27 @@ router.post('/login', async (req, res) => {
     }
 });
 
+router.post('/getUserData', async(req,res)=>{
+    const { username, password } = req.body;
+    try{
+        const usernameQuery = 'SELECT * FROM employees WHERE Username = ?';
+        const [userRows] = await db.query(usernameQuery, [username]);
+
+        if (userRows.length === 0) {
+            return res.status(404).json({ message: 'User not found' });
+        }else {
+            res.send({
+              status: true,
+              data: username,
+            });
+          }
+
+    }catch(error) {
+        console.log(error);
+        return res.json({ message: "Error in getUserData", error });
+      }
+})
+
+
+
 module.exports = router;

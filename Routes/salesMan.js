@@ -309,4 +309,30 @@ router.get('/getSellerHistory', async (req, res) => {
     }
 });
 
+router.get('/salesmanhistory', async(req,res)=>{
+    const query = `
+                
+            select v.VIN ,
+                    v.Purchased_by_employee as Employee_Id,
+                    v.Sold_to_customer_id as Customer_Id,
+                    c.Last_Name ,
+                    c.First_Name,
+                    v.Sold_date,
+                    v.Selling_Price
+            from vehicles v 
+            join customers c on
+            v.Sold_to_customer_id = c.Customer_id
+            where Sold_to_customer_id is not null;
+
+`;
+
+try {
+    const [results] = await db.query(query);
+    res.json(results);
+} catch (err) {
+    console.error('Database error:', err);
+    res.status(500).send('Database error: ' + err.message);
+}
+})
+
 module.exports = router; // Correctly export the router

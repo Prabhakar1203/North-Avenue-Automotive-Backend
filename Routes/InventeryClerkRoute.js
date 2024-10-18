@@ -255,5 +255,136 @@ router.post('/UpdateSellingPrice', async (req, res) => {
     }
 });
 
+router.get('/getVendors', async(req,res)=>{
+            const query = `        
+            select Vendor_id,
+                Vendor_Name,
+                Vendor_City,
+                Vendor_Phone_Number 
+                from vendors where Vendor_id is not null; `;
+
+        try {
+        const [results] = await db.query(query);
+        res.json(results);
+        } catch (err) {
+        console.error('Database error:', err);
+        res.status(500).send('Database error: ' + err.message);
+        }
+})
+
+router.get('/getCustomers',async(req,res)=>{
+            const query = `        
+           
+            select Customer_id,
+                First_name,
+                Last_name,
+                Phone_number,
+                Customer_type_Bus_Or_Ind 
+            from customers; `;
+
+        try {
+        const [results] = await db.query(query);
+        res.json(results);
+        } catch (err) {
+        console.error('Database error:', err);
+        res.status(500).send('Database error: ' + err.message);
+        }
+})
+
+//  parts status which is pending
+
+router.get('/getPendingOrderedParts',async(req,res)=>{
+    const query = ` 
+                SELECT 
+                    po.Order_id,
+                    po.Vendor_id,
+                    pi.Order_line_number,
+                    pi.Order_status,
+                    pi.Part_number,
+                    pi.Part_unit_price,
+                    pi.Part_quantity
+                FROM 
+                    Parts_items pi
+                JOIN 
+                    Part_orders po ON pi.Order_id = po.Order_id
+                WHERE 
+                    pi.Order_status IN ('Ordered', 'Received'); -- Filter for pending status; `;
+
+        try {
+        const [results] = await db.query(query);
+        res.json(results);
+        } catch (err) {
+        console.error('Database error:', err);
+        res.status(500).send('Database error: ' + err.message);
+        }
+})
+
+// updating the part Order Status
+
+router.post('/updatingOrderStatus', async (req, res) => {
+    const { Order_id, Order_line_number, Order_status } = req.body;
+
+    // Validate the presence of required fields
+    if (!Order_id || !Order_line_number || !Order_status) {
+        return res.status(400).json({ message: 'Order ID, Order Line Number, and Order Status are required' });
+    }
+
+    try {
+        // First, retrieve the current status of the part from the database
+        const getStatusQuery = `
+            SELECT Order_status 
+            FROM Parts_items 
+            WHERE Order_id = ? 
+            AND Order_line_number = ?;
+        `;
+        const [statusResults] = await db.query(getStatusQuery, [Order_id, Order_line_number]);
+
+        // If no records found, return 404
+        if (statusResults.length === 0) {
+            return res.status(404).json({ message: 'Order not found' });
+        }
+
+        // Get the current status from the result
+        const currentStatus = statusResults[0].Order_status;
+
+        // Define the allowed transitions
+        const allowedTransitions = {
+            Ordered: ['Received'],
+            Received: ['Installed'],
+            Installed: []  // Installed is the final status, no further transition
+        };
+
+        // Check if the requested new status is allowed from the current status
+        if (!allowedTransitions[currentStatus].includes(Order_status)) {
+            return res.status(400).json({ 
+                message: `Invalid status transition. Cannot move from ${currentStatus} to ${Order_status}.` 
+            });
+        }
+
+        // If valid transition, proceed with the update
+        const updateQuery = `
+            UPDATE Parts_items
+            SET Order_status = ? 
+            WHERE Order_id = ? 
+            AND Order_line_number = ?;
+        `;
+
+        const [results] = await db.query(updateQuery, [Order_status, Order_id, Order_line_number]);
+
+        // Check if any rows were updated
+        if (results.affectedRows === 0) {
+            return res.status(404).json({ message: 'Order not found or no update was made' });
+        }
+
+        res.status(200).json({ message: 'Order Status Updated Successfully' });
+    } catch (error) {
+        console.error('Error while updating Order Status:', error);
+        res.status(500).json({
+            message: 'Failed to update Order Status',
+            error: error.message,
+        });
+    }
+});
+
 
 module.exports = router;
